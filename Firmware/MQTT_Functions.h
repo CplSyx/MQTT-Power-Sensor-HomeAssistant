@@ -68,7 +68,7 @@ void reconnect() {
     My_MAC.toCharArray(MAC_array, (My_MAC.length() + 1));
 
     // connect client and use MAC address array as the Client ID
-    if (client.connect(MAC_array)) {
+    if (client.connect(MAC_array, mqtt_username, mqtt_password)) {
 
       Serial.println("connected");
       Serial.print("This is the client ID Used: "); Serial.println(MAC_array);

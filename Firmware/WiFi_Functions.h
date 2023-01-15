@@ -8,8 +8,11 @@ String Status_Report()  {
   // WiFi Version
   long rssi = WiFi.RSSI();
 
-  String Report = Mode + ", " + String(Value) + ", ";
-  Report = Report + My_MAC + ", " + WiFi_SSID + ", " + rssi + "dB, " + My_IP + ", " + String(Heart_Value);
+  String Report = String("");
+  Report = Report + "{\"mode\":" + "\"" + Mode + "\"" + ", " + "\"Value\":" + "\"" + String(Value) + "\"" + ", ";
+  Report = Report + "\"Address\":" + "\"" + My_MAC + "\"" + ", " + "\"SSID\":" + "\"" + WiFi_SSID + "\"" + ", " + "\"rssi\":" + "\"" + rssi + "dB\", " + "\"IP\":" + "\"" + My_IP + "\"" + ", " + "\"count\":" + "\"" + String(Heart_Value)+"\"}";
+  //NOTE: The above to first create an empty string via the String() operator as we can add strings to Strings, but not strings to strings. (Note capitalisation). 
+  //https://arduino.stackexchange.com/questions/25125/why-do-i-get-invalid-operands-of-types-const-char-error
 
   // clear the event message
   if (Mode != "Test") {

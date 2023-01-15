@@ -11,7 +11,7 @@
 /* ********************************** Compiler settings, un-comment to use ************************** */
 //#define Fixed_IP                      // un-comment to use a fixed IP address to speed up development
 //#ifdef Watchdog_ON                    // watchdog items, comment out if not used
-//#define Print_Report_Level_1          // un-comment for option
+#define Print_Report_Level_1          // un-comment for option
 #define Print_Report_Level_2          // un-comment for option, report received MQTT message
 #define Print_Report_Level_3          // un-comment for option
 /* ************************************************************************************************** */
@@ -20,19 +20,20 @@
 #include <WiFiClient.h>               // WiFi client
 
 // custom settings files
+#include "Secrets.h"                  // Usernames and passwords
 #include "Wifi_Settings.h"            // custom Wifi settings
 #include "MQTT_Settings.h"            // MQTT broker and topic
 #include "Project_Settings.h"         // board specific details.
 
 // incude WiFi and MQTT functions
 WiFiClient espClient;                 // for ESP8266 boards
-#include <PubSubClient.h>             // http://pubsubclient.knolleary.net/api.html
+#include "PubSubClient.h"             // http://pubsubclient.knolleary.net/api.html
 PubSubClient client(espClient);       // ESP pubsub client
 #include "WiFi_Functions.h"           // read wifi data
 #include "MQTT_Functions.h"           // MQTT Functions
 
 // library for the MLP191020 PCB
-#include <MLP191020.h>
+#include "MLP191020.h"
 // make an instance of MLP191020
 MLP191020 My_PCB(Cal_value);
 
@@ -55,11 +56,18 @@ void setup() {
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 
+  //need to discard first few messages from the sensor as they are wildly inaccurate
+  for (int i = 0; i<20; i++)
+  {
+    My_PCB.power_sample(); 
+    delay(10);
+  }
+
+
   // reset heartbeat timer
   LastMsg = millis();
 
 } // end of setup
-
 
 void loop() {
 
@@ -69,7 +77,7 @@ void loop() {
   client.loop();
 
   // read A/D values and store in value
-    Value = My_PCB.power_sample();
+  Value = My_PCB.power_sample();
 
   // headbeat or report requested
   if (millis() - LastMsg > Heatbeat || Report_Request == 1) {

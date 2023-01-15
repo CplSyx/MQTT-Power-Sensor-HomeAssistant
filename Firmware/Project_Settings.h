@@ -20,6 +20,8 @@ String My_MAC = "";                               // MAC address, tobe read from
 char MAC_array[13] = "000000000000";              // MAC definition
 String My_IP = "";                                // IP address
 
+double trim_value = 0.5;                            //Trim the sensor value as it will have a non-zero reading at no current. https://github.com/Mottramlabs/MQTT-Power-Sensor/issues/3
+
 volatile int Report_Request = 0;                  // set to 1 if report required
 String Mode = "Boot";                            // default message event
 
