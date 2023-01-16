@@ -99,7 +99,7 @@ void WiFi_Startup(const char* ssid, const char* password) {
     // print a connection report
     Serial.println("");
     Serial.print("WiFi connected, "); Serial.print("DHCP IP Address = "); Serial.println(WiFi.localIP());
-    Serial.println(__FILE__);
+    //Serial.println(__FILE__);
 
   } // end of connected
 

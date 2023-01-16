@@ -10,8 +10,8 @@
   by CplSyx Jan 2023
 */
 
-#ifndef EmonLib_h
-#define EmonLib_h
+//#ifndef EmonLib_h
+//#define EmonLib_h
 
 //Support for newer IDEs
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -26,11 +26,7 @@
 // Default to 10 bits, as in regular Arduino-based boards.
 #define ADC_BITS 10
 
-//Temp code due to same being used in MPLxxx
-#if !defined(ADC_COUNTS)
-#define ADC_COUNTS  (1<<ADC_BITS)
-#endif
-//#define ADC_COUNTS  (1<<ADC_BITS)
+#define ADC_COUNTS  (1<<ADC_BITS) //This bitwise operation equals 1024
 
 
 class EnergyMonitor
@@ -38,6 +34,7 @@ class EnergyMonitor
   public:
 
     void current(unsigned int _inPinI, double _ICAL);
+    void current(double _ICAL);
 
     double calcIrms(unsigned int NUMBER_OF_SAMPLES);
     void serialprint();
@@ -69,4 +66,4 @@ class EnergyMonitor
 
 };
 
-#endif
+//#endif

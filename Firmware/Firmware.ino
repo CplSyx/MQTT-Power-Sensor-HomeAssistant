@@ -49,7 +49,7 @@ void setup() {
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 
-  emon1.current(2, calibration); 
+  emon1.current(calibration); 
   Serial.println("**********************");
 
   //need to discard first few messages from the sensor as they are wildly inaccurate

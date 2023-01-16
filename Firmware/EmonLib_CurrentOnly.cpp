@@ -32,6 +32,14 @@ void EnergyMonitor::current(unsigned int _inPinI, double _ICAL)
   offsetI = ADC_COUNTS>>1;
 }
 
+// As we are using a wemos D1 mini, we know that the ADC is located on pin #2
+void EnergyMonitor::current(double _ICAL)
+{
+  inPinI = 2;
+  ICAL = _ICAL;
+  offsetI = ADC_COUNTS>>1;
+}
+
 //--------------------------------------------------------------------------------------
 // emon_calc procedure
 // Calculates Irms
