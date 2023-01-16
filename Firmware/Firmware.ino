@@ -8,16 +8,6 @@
     MQTT:		  See "MQTT_Settings.h" for MQTT broker and topic
 */
 
-/* ********************************** Compiler settings, un-comment to use ************************** */
-//#define Fixed_IP                      // un-comment to use a fixed IP address to speed up development
-//#ifdef Watchdog_ON                    // watchdog items, comment out if not used
-#define Print_Report_Level_1          // un-comment for option
-#define Print_Report_Level_2          // un-comment for option, report received MQTT message
-#define Print_Report_Level_3          // un-comment for option
-/* ************************************************************************************************** */
-
-
-
 #include <ESP8266WiFi.h>              // needed for EPS8266
 #include <WiFiClient.h>               // WiFi client
 
@@ -34,16 +24,11 @@ PubSubClient client(espClient);       // ESP pubsub client
 #include "WiFi_Functions.h"           // read wifi data
 #include "MQTT_Functions.h"           // MQTT Functions
 
-// library for the MLP191020 PCB
-//#include "MLP191020.h"
-// make an instance of MLP191020
-//MLP191020 My_PCB(Cal_value);
-
 // EmonLibrary
 #include "EmonLib_CurrentOnly.h"                   // Include Emon Library
 EnergyMonitor emon1;                   // Create an instance
 
-
+int loopCount = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -64,15 +49,17 @@ void setup() {
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 
+  emon1.current(2, calibration); 
+  Serial.println("**********************");
+
   //need to discard first few messages from the sensor as they are wildly inaccurate
   for (int i = 0; i<20; i++)
   {
-    //My_PCB.power_sample(); 
+    emon1.calcIrms(1480);
     delay(10);
   }
 
-  emon1.current(2, 87.5); 
-  Serial.println("**********************");
+
 
   // reset heartbeat timer
   LastMsg = millis();
@@ -81,13 +68,19 @@ void setup() {
 
 void loop() {
 
-  if (!client.connected()) {
+  if (!client.connected()) 
+  {
     reconnect();
   } // end if
   client.loop();
 
-  // read A/D values and store in value
-  Value = emon1.calcIrms(1480);//My_PCB.power_sample();
+  // read A/D values and store in value, averaged over 10 readings
+  Value = 0;
+  for (int j = 0; j<10; j++)
+  {
+    Value = Value + emon1.calcIrms(1480);
+  } 
+  Value = Value / 10;
 
   // headbeat or report requested
   if (millis() - LastMsg > Heatbeat || Report_Request == 1) {
@@ -108,23 +101,12 @@ void loop() {
     char Report_array[(Report.length() + 1)];
     Report.toCharArray(Report_array, (Report.length() + 1));
 
-#ifdef Print_Report_Level_2
-    // display a report when publishing
-    Serial.print("Published To topic: "); Serial.print(InStatus); Serial.print("  -  Report Sent: "); Serial.println(Report_array);
-#endif
-
     digitalWrite(Network_LED, HIGH);
     // send a status report
     client.publish(InStatus, Report_array);
 
-    /*double Irms = 0;
-    for (int j = 0; j<10; j++)
-    {
-      Irms = Irms + emon1.calcIrms(1480);
-    }  // Calculate Irms only
-    Irms = Irms / 10;
-    Serial.print("Current (Emon): ");
-    Serial.println(Irms);		*/
+    //Output to Serial Monitor what we have sent
+    Serial.print(String(loopCount)); Serial.print(": Published To topic: "); Serial.print(InStatus); Serial.print(" - Report Sent: "); Serial.println(Report_array);
 
     // only used to make the LED flash visable
     delay(10);
@@ -132,5 +114,7 @@ void loop() {
     digitalWrite(Network_LED, LOW);
 
   } // end of heartbeat timer
+  
+  loopCount++; //increment counter
 
 } // end of loop
