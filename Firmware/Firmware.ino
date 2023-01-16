@@ -37,6 +37,10 @@ PubSubClient client(espClient);       // ESP pubsub client
 // make an instance of MLP191020
 MLP191020 My_PCB(Cal_value);
 
+// EmonLibrary
+#include "EmonLib.h"                   // Include Emon Library
+EnergyMonitor emon1;                   // Create an instance
+
 
 void setup() {
 
