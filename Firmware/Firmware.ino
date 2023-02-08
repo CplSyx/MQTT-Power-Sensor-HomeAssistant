@@ -10,6 +10,7 @@
 
 #include <ESP8266WiFi.h>              // needed for EPS8266
 #include <WiFiClient.h>               // WiFi client
+#include "WiFiManager.h"              // https://github.com/tzapu/WiFiManager/releases/tag/0.16.0
 
 // custom settings files
 #include "Secrets.h"                  // Usernames and passwords
@@ -42,8 +43,21 @@ void setup() {
   pinMode(Network_LED, OUTPUT);
   digitalWrite(Network_LED, LOW);
 
+  /* Removed due to implementation of WifiManager. Delete this section when WifiManager is good to go.
   // connect to WiFi access point
   Get_Wifi();
+  */
+
+  WiFiManager wifiManager;
+  bool res;
+  // res = wm.autoConnect(); // auto generated AP name from chipid
+  // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
+  res = wifiManager.autoConnect();
+
+  if(!res) {
+      Serial.println("Failed to connect");
+      ESP.restart();
+  } 
 
   // connect to the MQTT broker
   client.setServer(mqtt_server, 1883);
