@@ -58,7 +58,7 @@ void callback(char* topic, byte* payload, unsigned int length_1) {
 void reconnect() {
 
   // loop until we're reconnected
-  while (!client.connected()) {
+  while (!pubsubClient.connected()) {
 
     // attempt to connect
     Serial.print("Attempting MQTT Broker connection...");
@@ -68,7 +68,7 @@ void reconnect() {
     My_MAC.toCharArray(MAC_array, (My_MAC.length() + 1));
 
     // connect client and use MAC address array as the Client ID
-    if (client.connect(MAC_array, mqtt_username, mqtt_password)) {
+    if (pubsubClient.connect(MAC_array, mqtt_username, mqtt_password)) {
 
       Serial.println("connected");
       Serial.print("This is the client ID Used: "); Serial.println(MAC_array);
@@ -77,7 +77,7 @@ void reconnect() {
       Report_Request = 1;   // Request a report after power up
 
       // ... and resubscribe
-      client.subscribe(InControl);
+      pubsubClient.subscribe(InControl);
       delay(10);  // It needs a delay here else does not subsribe correctly!
       Serial.print("Sunbscribed to: "); Serial.println(InControl);
 
@@ -86,7 +86,7 @@ void reconnect() {
     else {
 
       Serial.print("Failed, rc=");
-      Serial.print(client.state());
+      Serial.print(pubsubClient.state());
       Serial.println(" Try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
