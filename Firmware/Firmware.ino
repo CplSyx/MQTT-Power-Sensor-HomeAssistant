@@ -16,6 +16,7 @@
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
+#include <Preferences.h>              // Save MQTT string
 
 // custom settings files
 #include "WebPages.h"                 // HTML for web server
@@ -62,6 +63,9 @@ void setup() {
   secondTick.attach(1, ISRwatchdog);
 #endif
 
+  // Configure preferences namespace
+  preferences.begin("PowerMonitor", false); 
+
   // I/O
   pinMode(Network_LED, OUTPUT);
   digitalWrite(Network_LED, LOW);
@@ -104,6 +108,8 @@ void setup() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/html", index_html);
   });
+
+  //TODO: Handle "get" request for update to MQTT information
 
   // Start the webserver
   server.begin();
