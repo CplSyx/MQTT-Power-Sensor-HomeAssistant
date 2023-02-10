@@ -12,7 +12,13 @@
 #include <WiFiClient.h>               // WiFi client
 #include "WiFiManager.h"              // https://github.com/tzapu/WiFiManager/releases/tag/v2.0.15-rc.1
 
+#define WEBSERVER_H                   // Resolve conflicts between WifiManager and ESPAsyncWebServer https://github.com/me-no-dev/ESPAsyncWebServer/issues/418#issuecomment-667976368
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+
+
 // custom settings files
+#include "WebPages.h"                 // HTML for web server
 #include "Secrets.h"                  // Usernames and passwords
 #include "Wifi_Settings.h"            // custom Wifi settings
 #include "MQTT_Settings.h"            // MQTT broker and topic
@@ -21,20 +27,20 @@
 // incude WiFi and MQTT functions
 WiFiClient espClient;                 // for ESP8266 boards
 #include "PubSubClient.h"             // http://pubsubclient.knolleary.net/api.html
-PubSubClient pubsubClient(espClient);       // ESP pubsub client
+PubSubClient pubsubClient(espClient); // ESP pubsub client
 #include "WiFi_Functions.h"           // read wifi data
 #include "MQTT_Functions.h"           // MQTT Functions
 
 // EmonLibrary
-#include "EmonLib_CurrentOnly.h"        // Include Emon Library
+#include "EmonLib_CurrentOnly.h"       // Include Emon Library
 EnergyMonitor emon1;                   // Create an instance
 
 int loopCount = 0;
 
 /*** web server related variables START ***/
 
-  // Set web server port number to 80
-  WiFiServer server(80);
+  // Create AsyncWebServer object on port 80
+  AsyncWebServer  server(80);
 
   // Variable to store the HTTP request
   String header;
@@ -60,24 +66,44 @@ void setup() {
   pinMode(Network_LED, OUTPUT);
   digitalWrite(Network_LED, LOW);
 
+  // WiFi settings
   String newHostname = "PowerMonitor_";
   newHostname += ESP.getChipId();
   WiFi.hostname(newHostname.c_str());
 
-  WiFiManager wifiManager;
+  bool firstConnection = true;
+  if (WiFi.SSID().length() > 0)
+  {
+    firstConnection = false;
+  }
 
+  WiFiManager wifiManager;
   bool res;
   res = wifiManager.autoConnect(newHostname.c_str());
 
   if(!res) 
   {
       Serial.println("Failed to connect.");
-      ESP.restart();
+      // Following should erase settings and allow AP to restart
+      WiFi.disconnect(true);
+      delay(2000);
+      ESP.reset();
   } 
   else
   {
     Serial.println("Connected to Wifi.");
+    WiFi.setSleep(false);
+    if(firstConnection)
+    {
+      delay(2000);
+      ESP.restart();
+    }
   }
+
+  // Route for root / web page
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/html", index_html);
+  });
 
   // Start the webserver
   server.begin();
@@ -104,71 +130,6 @@ void setup() {
 } // end of setup
 
 void loop() {
-
-/*** handle web page requests START ***/
-  WiFiClient wifiClient = server.available();   // Listen for incoming clients
-
-  if (wifiClient) 
-  {                             // If a new client connects,
-    String currentLine = "";                // make a String to hold incoming data from the client
-    currentTime = millis();
-    previousTime = currentTime;
-    while (wifiClient.connected() && currentTime - previousTime <= timeoutTime) 
-    { // loop while the client's connected
-      currentTime = millis();         
-      if (wifiClient.available()) {             // if there's bytes to read from the client,
-        char c = wifiClient.read();             // read a byte, then
-        Serial.write(c);                    // print it out the serial monitor
-        header += c;
-        if (c == '\n') 
-        {                    // if the byte is a newline character
-          // if the current line is blank, you got two newline characters in a row.
-          // that's the end of the client HTTP request, so send a response:
-          if (currentLine.length() == 0) 
-          {
-            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
-            // and a content-type so the client knows what's coming, then a blank line:
-            wifiClient.println("HTTP/1.1 200 OK");
-            wifiClient.println("Content-type:text/html");
-            wifiClient.println("Connection: close");
-            wifiClient.println();
-
-          
-            
-            // Display the HTML web page
-            wifiClient.println("<!DOCTYPE html><html>");
-            wifiClient.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-            wifiClient.println("<link rel=\"icon\" href=\"data:,\">");
-
-            wifiClient.println("<style>");
-            wifiClient.println("html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
-            wifiClient.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
-            wifiClient.println("</style></head>");
-
-            wifiClient.println("<body><h1>Power Monitor Configuration</h1>");        
-            wifiClient.println("<p>Hello World</p>");            
-            wifiClient.println("</body></html>");
-            
-            // The HTTP response ends with another blank line
-            wifiClient.println();
-            // Break out of the while loop
-            break;
-          } else { // if you got a newline, then clear currentLine
-            currentLine = "";
-          }
-        } else if (c != '\r') {  // if you got anything else but a carriage return character,
-          currentLine += c;      // add it to the end of the currentLine
-        }
-      }
-    }
-    // Clear the header variable
-    header = "";
-    // Close the connection
-    wifiClient.stop();
-  }  
-
-  /*** handle web page requests END ***/
-
   
   if (!pubsubClient.connected()) 
   {
@@ -176,7 +137,7 @@ void loop() {
   } // end if
   pubsubClient.loop();
 
-
+/* Doing this blocks the loop and so causes issues with the webserver. 
   // read A/D values and store in value, averaged over 10 readings
   Value = 0;
   for (int j = 0; j<10; j++)
@@ -184,7 +145,9 @@ void loop() {
     Value = Value + emon1.calcIrms(1480);
   } 
   Value = Value / 10;
+*/
 
+  emon1.calcIrms(1480);
   // headbeat or report requested
   if (millis() - LastMsg > Heatbeat || Report_Request == 1) {
 
@@ -212,12 +175,14 @@ void loop() {
     Serial.print(String(loopCount)); Serial.print(": Published To topic: "); Serial.print(InStatus); Serial.print(" - Report Sent: "); Serial.println(Report_array);
 
     // only used to make the LED flash visable
-    delay(10);
+    //delay(10);
 
     digitalWrite(Network_LED, LOW);
 
   } // end of heartbeat timer
   
   loopCount++; //increment counter
+  
+  
 
 } // end of loop
