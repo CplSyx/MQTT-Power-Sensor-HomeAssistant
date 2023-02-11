@@ -38,6 +38,8 @@ EnergyMonitor emon1;                   // Create an instance
 
 int loopCount = 0;
 
+Preferences preferences;              // Initiate preferences
+
 /*** web server related variables START ***/
 
   // Create AsyncWebServer object on port 80
@@ -105,8 +107,42 @@ void setup() {
   }
 
   // Route for root / web page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+  /*server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/html", index_html);
+  });*/
+
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/html", index_html, processor);
+  });
+
+  // Send a GET request to <ESP_IP>/update?output=<inputMessage1>&state=<inputMessage2>
+  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    String wifiSSID;
+    String wifiPassword;
+    String mqttURL;
+    String mqttPort;
+    String mqttUsername;
+    String mqttPassword;
+    double newCalibration; 
+    String outputMessage;
+
+    // GET input1 value on <ESP_IP>/update?wifiSSID=<inputMessage1>&wifiPassword=<inputMessage2>&mqttURL=<inputMessage3>&mqttPort=<inputMessage4>&mqttUsername=<inputMessage5>&mqttPassword=<inputMessage6>&calibration=<inputMessage7>
+    if (request->hasParam("wifiSSID") && request->hasParam("wifiPassword") && request->hasParam("mqttURL") && request->hasParam("mqttPort") && request->hasParam("mqttUsername") && request->hasParam("mqttPassword") && request->hasParam("newCalibration")) 
+    {
+      wifiSSID = request->getParam("wifiSSID")->value();
+      wifiPassword = request->getParam("wifiPassword")->value();
+      mqttURL = request->getParam("mqttURL")->value();
+      mqttPort = request->getParam("mqttPort")->value();
+      mqttUsername = request->getParam("mqttUsername")->value();
+      mqttPassword = request->getParam("mqttPassword")->value();
+      newCalibration = request->getParam("newCalibration")->value().toDouble();
+    }
+    else 
+    {
+      outputMessage = "Please complete all fields.";
+    }
+    outputMessage = OK;
+    request->send(200, "text/plain", index_html);
   });
 
   //TODO: Handle "get" request for update to MQTT information
@@ -192,3 +228,30 @@ void loop() {
   
 
 } // end of loop
+
+// Replaces placeholder with button section in your web page
+String processor(const String& var){
+  Serial.println(var);
+  if(var == "WIFISSID"){
+    return WiFi.SSID();
+  }
+  if(var == "WIFIPASSWORD"){
+    return WiFi.SSID();
+  }
+  if(var == "MQTTURL"){
+    return mqtt_server;
+  }
+  if(var == "MQTTPORT"){
+    return mqtt_server;
+  }
+  if(var == "MQTTUSERNAME"){
+    return mqtt_username;
+  }
+  if(var == "MQTTPASSWORD"){
+    return mqtt_password;
+  }
+  if(var == "CALIBRATION"){
+    return String(calibration);
+  }
+  return String();
+}
