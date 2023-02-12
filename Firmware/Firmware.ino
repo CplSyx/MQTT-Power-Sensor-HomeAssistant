@@ -48,6 +48,9 @@ Preferences preferences;              // Initiate preferences
   // Variable to store the HTTP request
   String header;
 
+  // Variable to pass messages between HTML pages (via processor)
+  String outputMessage;
+
   // Current time
   unsigned long currentTime = millis();
   // Previous time
@@ -107,16 +110,12 @@ void setup() {
   }
 
   // Route for root / web page
-  /*server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(200, "text/html", index_html);
-  });*/
-
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html, processor);
   });
 
   // Send a GET request to <ESP_IP>/update?output=<inputMessage1>&state=<inputMessage2>
-  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/update", HTTP_POST, [] (AsyncWebServerRequest *request) {
     String wifiSSID;
     String wifiPassword;
     String mqttURL;
@@ -124,34 +123,34 @@ void setup() {
     String mqttUsername;
     String mqttPassword;
     double newCalibration; 
-    String outputMessage;
+
 
     // GET input1 value on <ESP_IP>/update?wifiSSID=<inputMessage1>&wifiPassword=<inputMessage2>&mqttURL=<inputMessage3>&mqttPort=<inputMessage4>&mqttUsername=<inputMessage5>&mqttPassword=<inputMessage6>&calibration=<inputMessage7>
-    if (request->hasParam("wifiSSID") && request->hasParam("wifiPassword") && request->hasParam("mqttURL") && request->hasParam("mqttPort") && request->hasParam("mqttUsername") && request->hasParam("mqttPassword") && request->hasParam("newCalibration")) 
+    if (request->hasParam("wifiSSID", true) && request->hasParam("wifiPassword", true) && request->hasParam("mqttURL", true) && request->hasParam("mqttPort", true) && request->hasParam("mqttUsername", true) && request->hasParam("mqttPassword", true) && request->hasParam("newCalibration", true)) 
     {
-      wifiSSID = request->getParam("wifiSSID")->value();
-      wifiPassword = request->getParam("wifiPassword")->value();
-      mqttURL = request->getParam("mqttURL")->value();
-      mqttPort = request->getParam("mqttPort")->value();
-      mqttUsername = request->getParam("mqttUsername")->value();
-      mqttPassword = request->getParam("mqttPassword")->value();
-      newCalibration = request->getParam("newCalibration")->value().toDouble();
+      wifiSSID = request->getParam("wifiSSID", true)->value();
+      wifiPassword = request->getParam("wifiPassword", true)->value();
+      mqttURL = request->getParam("mqttURL", true)->value();
+      mqttPort = request->getParam("mqttPort", true)->value();
+      mqttUsername = request->getParam("mqttUsername", true)->value();
+      mqttPassword = request->getParam("mqttPassword", true)->value();
+      newCalibration = request->getParam("newCalibration", true)->value().toDouble();
+      outputMessage = String("Output: ") + " " + wifiSSID + " " + wifiPassword + " " + mqttURL + " " + mqttPort + " " + mqttUsername + " " + mqttPassword + " " + newCalibration + " " + String("OK. Please restart device");
+
     }
     else 
     {
       outputMessage = "Please complete all fields.";
     }
-    outputMessage = OK;
-    request->send(200, "text/plain", index_html);
+    
+    request->send_P(200, "text/html", index_html, processor);
   });
-
-  //TODO: Handle "get" request for update to MQTT information
 
   // Start the webserver
   server.begin();
 
   // connect to the MQTT broker
-  pubsubClient.setServer(mqtt_server, 1883);
+  pubsubClient.setServer(mqtt_server, mqtt_port);
   pubsubClient.setCallback(callback);
 
   emon1.current(calibration); 
@@ -163,8 +162,6 @@ void setup() {
     emon1.calcIrms(1480);
     delay(10);
   }
-
-
 
   // reset heartbeat timer
   LastMsg = millis();
@@ -229,20 +226,20 @@ void loop() {
 
 } // end of loop
 
-// Replaces placeholder with button section in your web page
+// Processor to replace "placeholder" text (indicated like %THIS%) in HTML with variables or other output.
 String processor(const String& var){
   Serial.println(var);
   if(var == "WIFISSID"){
     return WiFi.SSID();
   }
   if(var == "WIFIPASSWORD"){
-    return WiFi.SSID();
+    return WiFi.psk();
   }
   if(var == "MQTTURL"){
     return mqtt_server;
   }
   if(var == "MQTTPORT"){
-    return mqtt_server;
+    return String(mqtt_port);
   }
   if(var == "MQTTUSERNAME"){
     return mqtt_username;
@@ -252,6 +249,9 @@ String processor(const String& var){
   }
   if(var == "CALIBRATION"){
     return String(calibration);
+  }
+  if(var == "OUTPUTMESSAGE"){
+    return outputMessage;
   }
   return String();
 }
