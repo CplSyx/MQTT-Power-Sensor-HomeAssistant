@@ -38,7 +38,15 @@ EnergyMonitor emon1;                   // Create an instance
 
 int loopCount = 0;
 
-Preferences preferences;              // Initiate preferences
+Preferences preferences;              // Initiate preferences and the variables we need for them
+String wifiSSID;
+String wifiPassword;
+String mqttURL;
+int mqttPort;
+String mqttUsername;
+String mqttPassword;
+String mqttTopic;
+double calibration = 87.5;                        //Calibration adjustment to obtain correct current value from sensor. Needs to be checked against a measured current source such as a heater.
 
 /*** web server related variables START ***/
 
@@ -68,8 +76,9 @@ void setup() {
   secondTick.attach(1, ISRwatchdog);
 #endif
 
-  // Configure preferences namespace
+  // Configure preferences namespace. "false" indicates NOT read-only
   preferences.begin("PowerMonitor", false); 
+  loadPreferences(); // Load in saved preferences
 
   // I/O
   pinMode(Network_LED, OUTPUT);
@@ -116,14 +125,6 @@ void setup() {
 
   // Send a GET request to <ESP_IP>/update?output=<inputMessage1>&state=<inputMessage2>
   server.on("/update", HTTP_POST, [] (AsyncWebServerRequest *request) {
-    String wifiSSID;
-    String wifiPassword;
-    String mqttURL;
-    String mqttPort;
-    String mqttUsername;
-    String mqttPassword;
-    double newCalibration; 
-
 
     // GET input1 value on <ESP_IP>/update?wifiSSID=<inputMessage1>&wifiPassword=<inputMessage2>&mqttURL=<inputMessage3>&mqttPort=<inputMessage4>&mqttUsername=<inputMessage5>&mqttPassword=<inputMessage6>&calibration=<inputMessage7>
     if (request->hasParam("wifiSSID", true) && request->hasParam("wifiPassword", true) && request->hasParam("mqttURL", true) && request->hasParam("mqttPort", true) && request->hasParam("mqttUsername", true) && request->hasParam("mqttPassword", true) && request->hasParam("newCalibration", true)) 
@@ -131,11 +132,14 @@ void setup() {
       wifiSSID = request->getParam("wifiSSID", true)->value();
       wifiPassword = request->getParam("wifiPassword", true)->value();
       mqttURL = request->getParam("mqttURL", true)->value();
-      mqttPort = request->getParam("mqttPort", true)->value();
+      mqttPort = request->getParam("mqttPort", true)->value().toInt();
       mqttUsername = request->getParam("mqttUsername", true)->value();
       mqttPassword = request->getParam("mqttPassword", true)->value();
-      newCalibration = request->getParam("newCalibration", true)->value().toDouble();
-      outputMessage = String("Output: ") + " " + wifiSSID + " " + wifiPassword + " " + mqttURL + " " + mqttPort + " " + mqttUsername + " " + mqttPassword + " " + newCalibration + " " + String("OK. Please restart device");
+      calibration = request->getParam("newCalibration", true)->value().toDouble();
+
+      
+
+      outputMessage = String("Output: ") + " " + wifiSSID + " " + wifiPassword + " " + mqttURL + " " + mqttPort + " " + mqttUsername + " " + mqttPassword + " " + calibration + " " + String("OK. Device Restarting... Please restart device");
 
     }
     else 
@@ -144,6 +148,17 @@ void setup() {
     }
     
     request->send_P(200, "text/html", index_html, processor);
+
+    delay(5000);
+    savePreferences();
+    WiFi.softAP(wifiSSID, wifiPassword);
+
+  });
+
+  // Restart button pressed
+  server.on("/restart", HTTP_POST, [] (AsyncWebServerRequest *request) {
+    delay(2000);
+    ESP.restart();
   });
 
   // Start the webserver
@@ -236,17 +251,20 @@ String processor(const String& var){
     return WiFi.psk();
   }
   if(var == "MQTTURL"){
-    return mqtt_server;
+    return mqttURL;
   }
   if(var == "MQTTPORT"){
-    return String(mqtt_port);
+    return String(mqttPort);
   }
   if(var == "MQTTUSERNAME"){
-    return mqtt_username;
+    return mqttUsername;
   }
   if(var == "MQTTPASSWORD"){
-    return mqtt_password;
+    return mqttPassword;
   }
+  if(var == "MQTTTOPIC"){
+    return mqttTopic;
+  }  
   if(var == "CALIBRATION"){
     return String(calibration);
   }
@@ -254,4 +272,28 @@ String processor(const String& var){
     return outputMessage;
   }
   return String();
+}
+
+void loadPreferences()
+{
+  wifiSSID = preferences.getString("wifiSSID", "none");
+  wifiPassword = preferences.getString("wifiPassword", "none");
+  mqttURL = preferences.getString("mqttURL", "http://127.0.0.1");
+  mqttPort = preferences.getInt("mqttPort", 1883);
+  mqttUsername = preferences.getString("mqttUsername", "username");
+  mqttPassword = preferences.getString("mqttPassword", "none");
+  mqttTopic = preferences.getString("mqttTopic", "publishtopic");
+  calibration = preferences.getDouble("calibration", 87.5);
+}
+
+void savePreferences()
+{
+  preferences.putString("wifiSSID", wifiSSID);
+  preferences.putString("wifiPassword", wifiPassword);
+  preferences.putString("mqttURL", mqttURL);
+  preferences.putInt("mqttPort", mqttPort);
+  preferences.putString("mqttUsername", mqttUsername);
+  preferences.putString("mqttPassword", mqttPassword);
+  preferences.putString("mqttTopic", mqttTopic);
+  preferences.putDouble("calibration", calibration);
 }

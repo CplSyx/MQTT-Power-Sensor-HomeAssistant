@@ -16,13 +16,13 @@ text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
 <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
 
 <body>
-<h1>Power Monitor Configuration</h1>        
-<p>%OUTPUTMESSAGE%</p>
-<form class="form-horizontal" action="/update" method="post">
-<fieldset>
+  <h1>Power Monitor Configuration</h1>        
+  <p>%OUTPUTMESSAGE%</p>
+  <form class="form-horizontal" action="/update" method="post">
+  <fieldset>
 
-<!-- Form Name -->
-<legend>Configuration</legend>       
+  <!-- Form Name -->
+  <legend>Configuration</legend>       
     <div class="">
         <label for="wifiSSID" class="formbuilder-text-label">Wifi SSID<span class="formbuilder-required">*</span></label>
         <input type="text" class="form-control" name="wifiSSID" id="wifiSSID" required="required" value="%WIFISSID%">
@@ -53,16 +53,28 @@ text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
     </div>
 
     <div class="">
+        <label for="mqttTopic" class="formbuilder-text-label">MQTT Topic<span class="formbuilder-required">*</span></label>
+        <input type="text" class="form-control" name="mqttTopic" id="mqttTopic" required="required" value="%MQTTTOPIC%">
+    </div>
+
+    <div class="">
         <label for="newCalibration" class="formbuilder-text-label">Calibration Value<span class="formbuilder-required">*</span></label>
         <input type="text" class="form-control" name="newCalibration" id="newCalibration" required="required" value="%CALIBRATION%">
     </div>
 
     <div class="">
-        <button type="submit" class="form-control" name="submitButton" value="save" style="" id="submitButton">Save Changes</button>
+        <button type="submit" class="form-control" name="submitButton" value="save" style="" id="submitButton">Save Changes</button>        
     </div>
 
-</fieldset>
-</form>
+  </fieldset>
+  </form>
+
+  <form class="form-horizontal" action="/restart" method="post">
+  <fieldset>
+  <button type="submit" class="form-control" name="restartButton" value="save" style="" id="restartButton">Restart</button>
+  </fieldset>
+  </form>
+
 </body>
 </html>
 

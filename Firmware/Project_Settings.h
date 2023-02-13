@@ -20,7 +20,7 @@ String My_MAC = "";                               // MAC address, tobe read from
 char MAC_array[13] = "000000000000";              // MAC definition
 String My_IP = "";                                // IP address
 
-double calibration = 87.5;                        //Calibration adjustment to obtain correct current value from sensor. Needs to be checked against a measured current source such as a heater.
+
 
 volatile int Report_Request = 0;                  // set to 1 if report required
 String Mode = "Boot";                            // default message event
