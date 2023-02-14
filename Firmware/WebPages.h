@@ -11,9 +11,11 @@ const char index_html[] PROGMEM = R"rawhtml(
 html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}
 text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
 
-</style></head>
-
+</style>
 <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+</head>
+
+
 
 <body>
   <h1>Power Monitor Configuration</h1>        
@@ -33,7 +35,7 @@ text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
     </div>
 
     <div class="">
-        <label for="mqttURL" class="formbuilder-text-label">MQTT URL<span class="formbuilder-required">*</span></label>
+        <label for="mqttURL" class="formbuilder-text-label">MQTT Host IP<span class="formbuilder-required">*</span></label>
         <input type="text" class="form-control" name="mqttURL" id="mqttURL" required="required" value="%MQTTURL%">
     </div>
 
@@ -71,7 +73,7 @@ text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
 
   <form class="form-horizontal" action="/restart" method="post">
   <fieldset>
-  <button type="submit" class="form-control" name="restartButton" value="save" style="" id="restartButton">Restart</button>
+  <button type="submit" class="form-control" name="restartButton" value="restart" style="" id="restartButton">Restart</button>
   </fieldset>
   </form>
 
@@ -79,3 +81,62 @@ text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
 </html>
 
 )rawhtml";
+
+const char restart_html[] PROGMEM = R"rawhtml(
+<!DOCTYPE html>
+<html>
+<head><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+
+<script>
+  function sendResetRequest() 
+  {
+    var http = new XMLHttpRequest();
+    http.open("POST", "/restart", true);
+    http.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+    var params = "restart=true";
+    http.send(params);
+    redirect();
+  }
+
+  function redirect () {
+    setTimeout(myURL, 5000);
+    var result = document.getElementById("result");
+    result.innerHTML = "<b> Restarting... </b>";
+  }
+
+  function myURL() {
+      document.location.href = window.location.origin;
+  }
+</script>
+
+<style>
+html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}
+text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
+
+</style>
+<link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+</head>
+
+
+
+<body>
+<h1>Power Monitor Configuration</h1>  
+<div id = "result">ARE YOU SURE?<br>
+  <form class="form-horizontal" action="" method="post">
+  <fieldset>
+
+  <div class="">
+  <button type="button" class="form-control" name="restartButton" style="" id="restartButton" onclick="sendResetRequest();">Yes - Restart Device</button>
+  </div>
+
+  <div class="">
+  <button type="button" class="form-control" name="backButton" style="" id="backButton" onclick="window.history.back();">No - Go Back</button>
+  </div>
+
+  </fieldset>
+  </form>
+</div>
+  </body>
+</html>
+  )rawhtml";

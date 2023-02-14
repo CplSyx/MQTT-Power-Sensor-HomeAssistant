@@ -10,7 +10,7 @@ String Status_Report()  {
 
   String Report = String("");
   Report = Report + "{\"mode\":" + "\"" + Mode + "\"" + ", " + "\"Value\":" + "\"" + String(Value) + "\"" + ", ";
-  Report = Report + "\"Address\":" + "\"" + My_MAC + "\"" + ", " + "\"SSID\":" + "\"" + WiFi_SSID + "\"" + ", " + "\"rssi\":" + "\"" + rssi + "dB\", " + "\"IP\":" + "\"" + My_IP + "\"" + ", " + "\"count\":" + "\"" + String(Heart_Value)+"\"}";
+  Report = Report + "\"Address\":" + "\"" + WiFi.macAddress() + "\"" + ", " + "\"SSID\":" + "\"" + WiFi.SSID() + "\"" + ", " + "\"rssi\":" + "\"" + rssi + "dB\", " + "\"IP\":" + "\"" + WiFi.localIP().toString() + "\"" + ", " + "\"count\":" + "\"" + String(Heart_Value)+"\"}";
   //NOTE: The above to first create an empty string via the String() operator as we can add strings to Strings, but not strings to strings. (Note capitalisation). 
   //https://arduino.stackexchange.com/questions/25125/why-do-i-get-invalid-operands-of-types-const-char-error
 
@@ -23,7 +23,7 @@ String Status_Report()  {
 
 } // End of function
 
-
+/*
 // start up Wifi and make a connection
 void WiFi_Startup(const char* ssid, const char* password) {
 
@@ -88,7 +88,7 @@ void WiFi_Startup(const char* ssid, const char* password) {
     } // end of loop
 
     // get the wifi IP address
-    ip = WiFi.localIP();
+    //ip = WiFi.localIP();
 
     // make a string of that IP address array
     My_IP = WiFi.localIP().toString();
@@ -110,7 +110,7 @@ void WiFi_Startup(const char* ssid, const char* password) {
 
 } // end of wifi startup
 
-
+/*
 // cycle through the WiFi access points until a connection is made
 void Get_Wifi() {
 
@@ -143,3 +143,4 @@ void Get_Wifi() {
   } // end of while loop
 
 } // end of function
+*/

@@ -15,10 +15,10 @@ int Heart_Value = 0;                              // timer
 long LastMsg = 0;                                 // message sent counter
 
 // Custom default values
-String WiFi_SSID = "None";                        // SSID string
-String My_MAC = "";                               // MAC address, tobe read from ESP8266
-char MAC_array[13] = "000000000000";              // MAC definition
-String My_IP = "";                                // IP address
+//String WiFi_SSID = "None";                        // SSID string
+//String My_MAC = "";                               // MAC address, tobe read from ESP8266
+//char MAC_array[13] = "000000000000";              // MAC definition
+//String My_IP = "";                                // IP address
 
 
 

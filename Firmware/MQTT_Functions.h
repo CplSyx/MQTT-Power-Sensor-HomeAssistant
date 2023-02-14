@@ -1,3 +1,6 @@
+// the ESP8266's MAC address is normally used to send a message to a selected device. 
+// below is the address used to broadcast to all devices subscribed to the above topic.
+String Broadcast_All = "*ALL";
 
 // test if message received
 void callback(char* topic, byte* payload, unsigned int length_1) {
@@ -17,7 +20,7 @@ void callback(char* topic, byte* payload, unsigned int length_1) {
 #endif
 
   // is the message for only you? Either contains your MAC address or the for all address (broadcast)
-  if (Message_Arrived.indexOf(My_MAC) >= 0 || Message_Arrived.indexOf(Broadcast_All) >= 0) {
+  if (Message_Arrived.indexOf(WiFi.macAddress()) >= 0 || Message_Arrived.indexOf(Broadcast_All) >= 0) {
 
     // valid message received, remove the headers either All or Mac
     // remove *ALL if present
@@ -27,9 +30,9 @@ void callback(char* topic, byte* payload, unsigned int length_1) {
     } // end of strip and test for ALL broadcast
 
     // remove the MAC number if present
-    if  (Message_Arrived.indexOf(My_MAC) >= 0) {
+    if  (Message_Arrived.indexOf(WiFi.macAddress()) >= 0) {
       // remove the address string characters
-      Message_Arrived.replace(My_MAC, "");
+      Message_Arrived.replace(WiFi.macAddress(), "");
     } // end of strip and test for ALL broadcast
 
     // ************************************
@@ -64,22 +67,22 @@ void reconnect() {
     Serial.print("Attempting MQTT Broker connection...");
 
     // make MAC address array used for Client ID
-    char  MAC_array[My_MAC.length()];
-    My_MAC.toCharArray(MAC_array, (My_MAC.length() + 1));
+    //char  MAC_array[My_MAC.length()];
+    //My_MAC.toCharArray(MAC_array, (My_MAC.length() + 1));
 
     // connect client and use MAC address array as the Client ID
-    if (pubsubClient.connect(MAC_array, mqtt_username, mqtt_password)) {
+    if (pubsubClient.connect(WiFi.macAddress().c_str(), mqttUsername.c_str(), mqttPassword.c_str())) {
 
       Serial.println("connected");
-      Serial.print("This is the client ID Used: "); Serial.println(MAC_array);
+      Serial.print("This is the client ID Used: "); Serial.println(WiFi.macAddress());
 
       // once connected, publish an announcement...
       Report_Request = 1;   // Request a report after power up
 
       // ... and resubscribe
-      pubsubClient.subscribe(InControl);
+      pubsubClient.subscribe(mqttTopic.c_str());
       delay(10);  // It needs a delay here else does not subsribe correctly!
-      Serial.print("Sunbscribed to: "); Serial.println(InControl);
+      Serial.print("Sunbscribed to: "); Serial.println(mqttTopic.c_str());
 
     } // end of if connected
 

@@ -17,18 +17,28 @@
 #include <ESPAsyncWebServer.h>
 
 #include <Preferences.h>              // Save MQTT string
+  Preferences preferences;            // Initiate preferences and the variables we need for them
+  String wifiSSID;
+  String wifiPassword;
+  String mqttURL;
+  uint16_t mqttPort;
+  String mqttUsername;
+  String mqttPassword;
+  String mqttTopic;
+  double calibration;                 //Calibration adjustment to obtain correct current value from sensor. Needs to be checked against a measured current source such as a heater.
 
 // custom settings files
 #include "WebPages.h"                 // HTML for web server
-#include "Secrets.h"                  // Usernames and passwords
-#include "Wifi_Settings.h"            // custom Wifi settings
-#include "MQTT_Settings.h"            // MQTT broker and topic
+//#include "Secrets.h"                // Usernames and passwords
+//#include "Wifi_Settings.h"            // custom Wifi settings
+//#include "MQTT_Settings.h"            // MQTT broker and topic
 #include "Project_Settings.h"         // board specific details.
 
 // incude WiFi and MQTT functions
 WiFiClient espClient;                 // for ESP8266 boards
 #include "PubSubClient.h"             // http://pubsubclient.knolleary.net/api.html
 PubSubClient pubsubClient(espClient); // ESP pubsub client
+
 #include "WiFi_Functions.h"           // read wifi data
 #include "MQTT_Functions.h"           // MQTT Functions
 
@@ -38,15 +48,7 @@ EnergyMonitor emon1;                   // Create an instance
 
 int loopCount = 0;
 
-Preferences preferences;              // Initiate preferences and the variables we need for them
-String wifiSSID;
-String wifiPassword;
-String mqttURL;
-int mqttPort;
-String mqttUsername;
-String mqttPassword;
-String mqttTopic;
-double calibration = 87.5;                        //Calibration adjustment to obtain correct current value from sensor. Needs to be checked against a measured current source such as a heater.
+
 
 /*** web server related variables START ***/
 
@@ -97,6 +99,7 @@ void setup() {
 
   WiFiManager wifiManager;
   bool res;
+  wifiManager.setConnectTimeout(30);
   res = wifiManager.autoConnect(newHostname.c_str());
 
   if(!res) 
@@ -135,37 +138,41 @@ void setup() {
       mqttPort = request->getParam("mqttPort", true)->value().toInt();
       mqttUsername = request->getParam("mqttUsername", true)->value();
       mqttPassword = request->getParam("mqttPassword", true)->value();
+      mqttTopic = request->getParam("mqttTopic", true)->value();
       calibration = request->getParam("newCalibration", true)->value().toDouble();
 
-      
+      savePreferences();
 
-      outputMessage = String("Output: ") + " " + wifiSSID + " " + wifiPassword + " " + mqttURL + " " + mqttPort + " " + mqttUsername + " " + mqttPassword + " " + calibration + " " + String("OK. Device Restarting... Please restart device");
+      outputMessage = String("Output: ") + " " + wifiSSID + " " + wifiPassword + " " + mqttURL + " " + mqttPort + " " + mqttUsername + " " + mqttPassword + " " + mqttTopic + " " + calibration + " " + String("OK. Please restart device.");
 
     }
     else 
     {
       outputMessage = "Please complete all fields.";
-    }
-    
+    }    
     request->send_P(200, "text/html", index_html, processor);
-
-    delay(5000);
-    savePreferences();
-    WiFi.softAP(wifiSSID, wifiPassword);
-
   });
 
-  // Restart button pressed
+  // Restart button pressed on index_html
   server.on("/restart", HTTP_POST, [] (AsyncWebServerRequest *request) {
-    delay(2000);
-    ESP.restart();
+    if(request->hasParam("restart", true) && request->getParam("restart", true)->value() == "true") 
+    {
+      Serial.println("Restart Request Received");
+      ESP.restart();
+    }
+    else
+    {
+      request->send(200, "text/html", restart_html);
+    }
   });
 
   // Start the webserver
   server.begin();
 
   // connect to the MQTT broker
-  pubsubClient.setServer(mqtt_server, mqtt_port);
+  IPAddress mqttAddress;
+  mqttAddress.fromString(mqttURL);
+  pubsubClient.setServer(mqttAddress, mqttPort);
   pubsubClient.setCallback(callback);
 
   emon1.current(calibration); 
@@ -174,7 +181,7 @@ void setup() {
   //need to discard first few messages from the sensor as they are wildly inaccurate
   for (int i = 0; i<20; i++)
   {
-    emon1.calcIrms(1480);
+    emon1.calcIrms(1060); //The sketch reads approximately 106 samples of current in each cycle of mains at 50 Hz. 1480 samples therefore works out at 14 cycles of mains. 1060 is 10 cycles.
     delay(10);
   }
 
@@ -201,7 +208,7 @@ void loop() {
   Value = Value / 10;
 */
 
-  emon1.calcIrms(1480);
+  emon1.calcIrms(1060); //The sketch reads approximately 106 samples of current in each cycle of mains at 50 Hz. 1480 samples therefore works out at 14 cycles of mains. 1060 is 10 cycles.
   // headbeat or report requested
   if (millis() - LastMsg > Heatbeat || Report_Request == 1) {
 
@@ -223,10 +230,10 @@ void loop() {
 
     digitalWrite(Network_LED, HIGH);
     // send a status report
-    pubsubClient.publish(InStatus, Report_array);
+    pubsubClient.publish(mqttTopic.c_str(), Report_array);
 
     //Output to Serial Monitor what we have sent
-    Serial.print(String(loopCount)); Serial.print(": Published To topic: "); Serial.print(InStatus); Serial.print(" - Report Sent: "); Serial.println(Report_array);
+    Serial.print(String(loopCount)); Serial.print(": Published To topic: "); Serial.print(mqttTopic); Serial.print(" - Report Sent: "); Serial.println(Report_array);
 
     // only used to make the LED flash visable
     //delay(10);
@@ -276,10 +283,11 @@ String processor(const String& var){
 
 void loadPreferences()
 {
+  // Second parameter below are the default values for each setting if none are set
   wifiSSID = preferences.getString("wifiSSID", "none");
   wifiPassword = preferences.getString("wifiPassword", "none");
   mqttURL = preferences.getString("mqttURL", "http://127.0.0.1");
-  mqttPort = preferences.getInt("mqttPort", 1883);
+  mqttPort = preferences.getShort("mqttPort", 1883);
   mqttUsername = preferences.getString("mqttUsername", "username");
   mqttPassword = preferences.getString("mqttPassword", "none");
   mqttTopic = preferences.getString("mqttTopic", "publishtopic");
@@ -291,7 +299,7 @@ void savePreferences()
   preferences.putString("wifiSSID", wifiSSID);
   preferences.putString("wifiPassword", wifiPassword);
   preferences.putString("mqttURL", mqttURL);
-  preferences.putInt("mqttPort", mqttPort);
+  preferences.putUShort("mqttPort", mqttPort);
   preferences.putString("mqttUsername", mqttUsername);
   preferences.putString("mqttPassword", mqttPassword);
   preferences.putString("mqttTopic", mqttTopic);
