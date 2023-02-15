@@ -8,10 +8,12 @@
 
   Simplified for current measurement only with SCT-013-000 YHDC Current Transformer
   by CplSyx Jan 2023
+
+  For information on number of samples as seen in "double calcIrms(unsigned int NUMBER_OF_SAMPLES);", please see
+  https://openenergymonitor.github.io/forum-archive/node/846.html
 */
 
-//#ifndef EmonLib_h
-//#define EmonLib_h
+
 
 //Support for newer IDEs
 #if defined(ARDUINO) && ARDUINO >= 100

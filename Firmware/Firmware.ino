@@ -15,6 +15,12 @@
 #define WEBSERVER_H                   // Resolve conflicts between WifiManager and ESPAsyncWebServer https://github.com/me-no-dev/ESPAsyncWebServer/issues/418#issuecomment-667976368
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+  // Create AsyncWebServer object on port 80
+  AsyncWebServer  server(80);
+  // Variable to store the HTTP request
+  String header;
+  // Variable to pass messages between HTML pages (via processor)
+  String outputMessage;
 
 #include <Preferences.h>              // Save MQTT string
   Preferences preferences;            // Initiate preferences and the variables we need for them
@@ -29,54 +35,23 @@
 
 // custom settings files
 #include "WebPages.h"                 // HTML for web server
-//#include "Secrets.h"                // Usernames and passwords
-//#include "Wifi_Settings.h"            // custom Wifi settings
-//#include "MQTT_Settings.h"            // MQTT broker and topic
 #include "Project_Settings.h"         // board specific details.
 
 // incude WiFi and MQTT functions
 WiFiClient espClient;                 // for ESP8266 boards
 #include "PubSubClient.h"             // http://pubsubclient.knolleary.net/api.html
-PubSubClient pubsubClient(espClient); // ESP pubsub client
+  PubSubClient pubsubClient(espClient); // ESP pubsub client
 
-#include "WiFi_Functions.h"           // read wifi data
 #include "MQTT_Functions.h"           // MQTT Functions
 
 // EmonLibrary
-#include "EmonLib_CurrentOnly.h"       // Include Emon Library
-EnergyMonitor emon1;                   // Create an instance
+#include "EmonLib_CurrentOnly.h"      // Include Emon Library
+EnergyMonitor emon1;                  // Create an instance
 
 int loopCount = 0;
 
-
-
-/*** web server related variables START ***/
-
-  // Create AsyncWebServer object on port 80
-  AsyncWebServer  server(80);
-
-  // Variable to store the HTTP request
-  String header;
-
-  // Variable to pass messages between HTML pages (via processor)
-  String outputMessage;
-
-  // Current time
-  unsigned long currentTime = millis();
-  // Previous time
-  unsigned long previousTime = 0; 
-  // Define timeout time in milliseconds (example: 2000ms = 2s)
-  const long timeoutTime = 2000;
-
-/*** web server related variables END ***/
-
 void setup() {
   Serial.begin(115200);
-
-#ifdef Watchdog_ON
-  // watchdog items, comment out if not used
-  secondTick.attach(1, ISRwatchdog);
-#endif
 
   // Configure preferences namespace. "false" indicates NOT read-only
   preferences.begin("PowerMonitor", false); 
@@ -91,6 +66,7 @@ void setup() {
   newHostname += ESP.getChipId();
   WiFi.hostname(newHostname.c_str());
 
+  //Connect to WiFi
   bool firstConnection = true;
   if (WiFi.SSID().length() > 0)
   {
@@ -121,15 +97,14 @@ void setup() {
     }
   }
 
-  // Route for root / web page
+  // Webserver: Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html, processor);
   });
 
-  // Send a GET request to <ESP_IP>/update?output=<inputMessage1>&state=<inputMessage2>
+  // Webserver Route for handling incoming new settings <ESP_IP>/update?wifiSSID=<inputMessage1>&wifiPassword=<inputMessage2>&mqttURL=<inputMessage3>&mqttPort=<inputMessage4>&...etc
   server.on("/update", HTTP_POST, [] (AsyncWebServerRequest *request) {
-
-    // GET input1 value on <ESP_IP>/update?wifiSSID=<inputMessage1>&wifiPassword=<inputMessage2>&mqttURL=<inputMessage3>&mqttPort=<inputMessage4>&mqttUsername=<inputMessage5>&mqttPassword=<inputMessage6>&calibration=<inputMessage7>
+    
     if (request->hasParam("wifiSSID", true) && request->hasParam("wifiPassword", true) && request->hasParam("mqttURL", true) && request->hasParam("mqttPort", true) && request->hasParam("mqttUsername", true) && request->hasParam("mqttPassword", true) && request->hasParam("newCalibration", true)) 
     {
       wifiSSID = request->getParam("wifiSSID", true)->value();
@@ -153,14 +128,16 @@ void setup() {
     request->send_P(200, "text/html", index_html, processor);
   });
 
-  // Restart button pressed on index_html
+  // Webserber: Handle when restart button pressed on index_html
   server.on("/restart", HTTP_POST, [] (AsyncWebServerRequest *request) {
+
+    // Reset on Confirmation page - incoming post value via Javascript submit
     if(request->hasParam("restart", true) && request->getParam("restart", true)->value() == "true") 
     {
       Serial.println("Restart Request Received");
       ESP.restart();
     }
-    else
+    else // Just Show the confirmation page
     {
       request->send(200, "text/html", restart_html);
     }
@@ -175,18 +152,20 @@ void setup() {
   pubsubClient.setServer(mqttAddress, mqttPort);
   pubsubClient.setCallback(callback);
 
+  // Set the calibration value of the sensor
   emon1.current(calibration); 
-  Serial.println("**********************");
-
-  //need to discard first few messages from the sensor as they are wildly inaccurate
+  
+  //need to discard first few messages from the sensor as they are inaccurate due to initialisation
   for (int i = 0; i<20; i++)
   {
-    emon1.calcIrms(1060); //The sketch reads approximately 106 samples of current in each cycle of mains at 50 Hz. 1480 samples therefore works out at 14 cycles of mains. 1060 is 10 cycles.
+    emon1.calcIrms(1060); // The sketch reads approximately 106 samples of current in each cycle of mains at 50 Hz. 1480 samples therefore works out at 14 cycles of mains. 1060 is 10 cycles.
     delay(10);
   }
 
   // reset heartbeat timer
   LastMsg = millis();
+
+  Serial.println("**********END SETUP************");
 
 } // end of setup
 
@@ -208,7 +187,8 @@ void loop() {
   Value = Value / 10;
 */
 
-  emon1.calcIrms(1060); //The sketch reads approximately 106 samples of current in each cycle of mains at 50 Hz. 1480 samples therefore works out at 14 cycles of mains. 1060 is 10 cycles.
+  emon1.calcIrms(1060); //The sketch reads approximately 106 samples of current in each cycle of mains at 50 Hz. 1480 samples therefore works out at 14 cycles of mains. 1060 is 10 cycles. 
+  
   // headbeat or report requested
   if (millis() - LastMsg > Heatbeat || Report_Request == 1) {
 
@@ -247,6 +227,27 @@ void loop() {
   
 
 } // end of loop
+
+// compose a custom report to send by MQTT
+String Status_Report()  {
+
+  // WiFi Version
+  long rssi = WiFi.RSSI();
+
+  String Report = String("");
+  Report = Report + "{\"mode\":" + "\"" + Mode + "\"" + ", " + "\"Value\":" + "\"" + String(Value) + "\"" + ", ";
+  Report = Report + "\"Address\":" + "\"" + WiFi.macAddress() + "\"" + ", " + "\"SSID\":" + "\"" + WiFi.SSID() + "\"" + ", " + "\"rssi\":" + "\"" + rssi + "dB\", " + "\"IP\":" + "\"" + WiFi.localIP().toString() + "\"" + ", " + "\"count\":" + "\"" + String(Heart_Value)+"\"}";
+  //NOTE: The above to first create an empty string via the String() operator as we can add strings to Strings, but not strings to strings. (Note capitalisation). 
+  //https://arduino.stackexchange.com/questions/25125/why-do-i-get-invalid-operands-of-types-const-char-error
+
+  // clear the event message
+  if (Mode != "Test") {
+    Mode = "None";
+  }
+
+  return Report;
+
+} // End of function
 
 // Processor to replace "placeholder" text (indicated like %THIS%) in HTML with variables or other output.
 String processor(const String& var){
