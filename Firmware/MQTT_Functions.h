@@ -1,5 +1,6 @@
 // the ESP8266's MAC address is normally used to send a message to a selected device. 
 // below is the address used to broadcast to all devices subscribed to the above topic.
+
 String Broadcast_All = "*ALL";
 
 // test if message received
@@ -50,9 +51,7 @@ void callback(char* topic, byte* payload, unsigned int length_1) {
 
   } // end of a valid message received
 
-  // clear watchdog timer
-  watchdogCount = 0;
-  yield();
+  yield(); // Ensures we're not blocking the ESP8266 functions https://stackoverflow.com/questions/34497758/what-is-the-secret-of-the-arduino-yieldfunction
 
 } // end of callback
 
@@ -75,9 +74,6 @@ void reconnect() {
 
       Serial.println("connected");
       Serial.print("This is the client ID Used: "); Serial.println(WiFi.macAddress());
-
-      // once connected, publish an announcement...
-      Report_Request = 1;   // Request a report after power up
 
       // ... and resubscribe
       pubsubClient.subscribe(mqttTopic.c_str());

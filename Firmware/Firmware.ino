@@ -41,7 +41,9 @@
 WiFiClient espClient;                 // for ESP8266 boards
 #include "PubSubClient.h"             // http://pubsubclient.knolleary.net/api.html
   PubSubClient pubsubClient(espClient); // ESP pubsub client
-
+  int messageCount = 0;
+  long lastMessageSent = 0;           // Time last message was sent
+  static int updateInterval = 1000;   // Interval between sending updates in milliseconds
 #include "MQTT_Functions.h"           // MQTT Functions
 
 // EmonLibrary
@@ -68,28 +70,46 @@ void setup() {
 
   //Connect to WiFi
   bool firstConnection = true;
-  if (WiFi.SSID().length() > 0)
+  if (preferences.isKey("wifiSSID"))
   {
+    Serial.print("Connecting to WiFi with saved credentials: SSID ");
+    Serial.print(wifiSSID);
+    Serial.print(" Password ");
+    Serial.println(wifiPassword);
+    WiFi.begin(wifiSSID, wifiPassword);
+    while(WiFi.status() == WL_DISCONNECTED)
+    {
+      delay(100);
+    }
     firstConnection = false;
   }
+  else 
+  {
+    Serial.println("Setting up WiFi access point");
+    WiFiManager wifiManager;
+    bool res;
+    wifiManager.setConnectTimeout(10);
+    if(wifiManager.autoConnect(newHostname.c_str()))
+    {
+      preferences.putString("wifiSSID", WiFi.SSID());
+      preferences.putString("wifiPassword", WiFi.psk());
+      firstConnection = false;
+    }
+  }
 
-  WiFiManager wifiManager;
-  bool res;
-  wifiManager.setConnectTimeout(30);
-  res = wifiManager.autoConnect(newHostname.c_str());
-
-  if(!res) 
+  if(WiFi.status() == WL_CONNECT_FAILED || !WiFi.isConnected()) 
   {
       Serial.println("Failed to connect.");
       // Following should erase settings and allow AP to restart
+      preferences.remove("wifiSSID");
+      preferences.remove("wifiPassword");
       WiFi.disconnect(true);
-      delay(2000);
+      ESP.eraseConfig();
       ESP.reset();
   } 
   else
   {
     Serial.println("Connected to Wifi.");
-    WiFi.setSleep(false);
     if(firstConnection)
     {
       delay(2000);
@@ -99,12 +119,13 @@ void setup() {
 
   // Webserver: Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    Serial.println("paused");
     request->send_P(200, "text/html", index_html, processor);
+    Serial.println("unpaused");
   });
 
   // Webserver Route for handling incoming new settings <ESP_IP>/update?wifiSSID=<inputMessage1>&wifiPassword=<inputMessage2>&mqttURL=<inputMessage3>&mqttPort=<inputMessage4>&...etc
   server.on("/update", HTTP_POST, [] (AsyncWebServerRequest *request) {
-    
     if (request->hasParam("wifiSSID", true) && request->hasParam("wifiPassword", true) && request->hasParam("mqttURL", true) && request->hasParam("mqttPort", true) && request->hasParam("mqttUsername", true) && request->hasParam("mqttPassword", true) && request->hasParam("newCalibration", true)) 
     {
       wifiSSID = request->getParam("wifiSSID", true)->value();
@@ -119,7 +140,7 @@ void setup() {
       savePreferences();
 
       outputMessage = String("Output: ") + " " + wifiSSID + " " + wifiPassword + " " + mqttURL + " " + mqttPort + " " + mqttUsername + " " + mqttPassword + " " + mqttTopic + " " + calibration + " " + String("OK. Please restart device.");
-
+      
     }
     else 
     {
@@ -130,7 +151,6 @@ void setup() {
 
   // Webserber: Handle when restart button pressed on index_html
   server.on("/restart", HTTP_POST, [] (AsyncWebServerRequest *request) {
-
     // Reset on Confirmation page - incoming post value via Javascript submit
     if(request->hasParam("restart", true) && request->getParam("restart", true)->value() == "true") 
     {
@@ -162,9 +182,6 @@ void setup() {
     delay(10);
   }
 
-  // reset heartbeat timer
-  LastMsg = millis();
-
   Serial.println("**********END SETUP************");
 
 } // end of setup
@@ -177,7 +194,7 @@ void loop() {
   } // end if
   pubsubClient.loop();
 
-/* Doing this blocks the loop and so causes issues with the webserver. 
+/* Doing this blocks the loop and so causes issues with the webserver. CAN WE DO THIS AGAIN IF THE CALC IS INSIDE THE TIMER?
   // read A/D values and store in value, averaged over 10 readings
   Value = 0;
   for (int j = 0; j<10; j++)
@@ -187,21 +204,9 @@ void loop() {
   Value = Value / 10;
 */
 
-  emon1.calcIrms(1060); //The sketch reads approximately 106 samples of current in each cycle of mains at 50 Hz. 1480 samples therefore works out at 14 cycles of mains. 1060 is 10 cycles. 
-  
-  // headbeat or report requested
-  if (millis() - LastMsg > Heatbeat || Report_Request == 1) {
-
-    LastMsg = millis();
-    Report_Request = 0;
-
-    // update event progress counter
-    ++Heart_Value;
-    if (Heart_Value > Heartbeat_Range) {
-      Heart_Value = 1;
-    } // end if
-
-    // heartbeat timed out or report message requested
+  // Once interval has passed - this means we aren't constantly reading from the ADC which causes issues with WiFi connection
+  if (millis() - lastMessageSent > updateInterval) {
+    emon1.calcIrms(1480); //The sketch reads approximately 106 samples of current in each cycle of mains at 50 Hz. 1480 samples therefore works out at 14 cycles of mains.
 
     // get a report make and make as an array
     String Report = Status_Report();
@@ -215,17 +220,14 @@ void loop() {
     //Output to Serial Monitor what we have sent
     Serial.print(String(loopCount)); Serial.print(": Published To topic: "); Serial.print(mqttTopic); Serial.print(" - Report Sent: "); Serial.println(Report_array);
 
-    // only used to make the LED flash visable
-    //delay(10);
-
     digitalWrite(Network_LED, LOW);
 
-  } // end of heartbeat timer
+    messageCount++;
+    lastMessageSent = millis();
+  }
   
-  loopCount++; //increment counter
+  loopCount++; //increment counter REMOVE AFTER DEBUG COMPLETE
   
-  
-
 } // end of loop
 
 // compose a custom report to send by MQTT
@@ -235,15 +237,11 @@ String Status_Report()  {
   long rssi = WiFi.RSSI();
 
   String Report = String("");
-  Report = Report + "{\"mode\":" + "\"" + Mode + "\"" + ", " + "\"Value\":" + "\"" + String(Value) + "\"" + ", ";
-  Report = Report + "\"Address\":" + "\"" + WiFi.macAddress() + "\"" + ", " + "\"SSID\":" + "\"" + WiFi.SSID() + "\"" + ", " + "\"rssi\":" + "\"" + rssi + "dB\", " + "\"IP\":" + "\"" + WiFi.localIP().toString() + "\"" + ", " + "\"count\":" + "\"" + String(Heart_Value)+"\"}";
-  //NOTE: The above to first create an empty string via the String() operator as we can add strings to Strings, but not strings to strings. (Note capitalisation). 
+  Report = Report + "{\"Value\":" + "\"" + String(Value) + "\"" + ", ";
+  Report = Report + "\"Address\":" + "\"" + WiFi.macAddress() + "\"" + ", " + "\"SSID\":" + "\"" + WiFi.SSID() + "\"" + ", " + "\"rssi\":" + "\"" + rssi + "dB\", " + "\"IP\":" + "\"" + WiFi.localIP().toString() + "\"" + ", " + "\"count\":" + "\"" + String(messageCount)+"\"}";
+  //NOTE: The above first creates an empty string via the String() operator as we can add strings to Strings, but not strings to strings. (Note capitalisation). 
   //https://arduino.stackexchange.com/questions/25125/why-do-i-get-invalid-operands-of-types-const-char-error
 
-  // clear the event message
-  if (Mode != "Test") {
-    Mode = "None";
-  }
 
   return Report;
 
@@ -253,10 +251,10 @@ String Status_Report()  {
 String processor(const String& var){
   Serial.println(var);
   if(var == "WIFISSID"){
-    return WiFi.SSID();
+    return wifiSSID;
   }
   if(var == "WIFIPASSWORD"){
-    return WiFi.psk();
+    return wifiPassword;
   }
   if(var == "MQTTURL"){
     return mqttURL;
