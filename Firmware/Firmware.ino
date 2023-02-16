@@ -9,6 +9,8 @@
 */
 
 #include <ESP8266WiFi.h>              // needed for EPS8266
+#define ActivityLED 2                 // define the pinout for the activity LED
+
 #include <WiFiClient.h>               // WiFi client
 #include "WiFiManager.h"              // https://github.com/tzapu/WiFiManager/releases/tag/v2.0.15-rc.1
 
@@ -44,11 +46,13 @@ WiFiClient espClient;                 // for ESP8266 boards
   int messageCount = 0;
   long lastMessageSent = 0;           // Time last message was sent
   static int updateInterval = 1000;   // Interval between sending updates in milliseconds
+
 #include "MQTT_Functions.h"           // MQTT Functions
 
 // EmonLibrary
 #include "EmonLib_CurrentOnly.h"      // Include Emon Library
 EnergyMonitor emon1;                  // Create an instance
+double Value = 0;                     // Holds the latest Irms value
 
 int loopCount = 0;
 
@@ -60,8 +64,8 @@ void setup() {
   loadPreferences(); // Load in saved preferences
 
   // I/O
-  pinMode(Network_LED, OUTPUT);
-  digitalWrite(Network_LED, LOW);
+  pinMode(ActivityLED, OUTPUT);
+  digitalWrite(ActivityLED, LOW);
 
   // WiFi settings
   String newHostname = "PowerMonitor_";
@@ -213,14 +217,14 @@ void loop() {
     char Report_array[(Report.length() + 1)];
     Report.toCharArray(Report_array, (Report.length() + 1));
 
-    digitalWrite(Network_LED, HIGH);
+    digitalWrite(ActivityLED, HIGH);
     // send a status report
     pubsubClient.publish(mqttTopic.c_str(), Report_array);
 
     //Output to Serial Monitor what we have sent
     Serial.print(String(loopCount)); Serial.print(": Published To topic: "); Serial.print(mqttTopic); Serial.print(" - Report Sent: "); Serial.println(Report_array);
 
-    digitalWrite(Network_LED, LOW);
+    digitalWrite(ActivityLED, LOW);
 
     messageCount++;
     lastMessageSent = millis();
