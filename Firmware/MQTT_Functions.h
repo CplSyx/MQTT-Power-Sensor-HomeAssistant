@@ -65,10 +65,6 @@ void reconnect() {
     // attempt to connect
     Serial.print("Attempting MQTT Broker connection...");
 
-    // make MAC address array used for Client ID
-    //char  MAC_array[My_MAC.length()];
-    //My_MAC.toCharArray(MAC_array, (My_MAC.length() + 1));
-
     // connect client and use MAC address array as the Client ID
     if (pubsubClient.connect(WiFi.macAddress().c_str(), mqttUsername.c_str(), mqttPassword.c_str())) {
 
