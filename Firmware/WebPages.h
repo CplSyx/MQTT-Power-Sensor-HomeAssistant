@@ -5,25 +5,44 @@ const char index_html[] PROGMEM = R"rawhtml(
 <!DOCTYPE html>
 <html>
 <head><meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="data:,">
-
+<title>Power Monitor Configuration</title>
 <style>
-html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}
-text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
+:root{
+	--primarycolor:#1fa3ec;
+}
+body {
+    text-align: center;
+    font-family: Helvetica;
+}
+div,
+input,select {
+    padding: 5px;
+    font-size: 1em;
+    margin: 5px 0;
 
+}
+div{
+	margin: 5px 0;
+}
+input,button,select,.msg{
+	border-radius:.3rem;
+
+}
+button,input[type="button"],input[type="submit"] {
+    border: 0;
+    background-color: var(--primarycolor);
+    color: #fff;
+    line-height: 2.4rem;
+    font-size: 1.2rem;
+}
 </style>
-<link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
 </head>
-
-
 
 <body>
   <h1>Power Monitor Configuration</h1>        
   <p>%OUTPUTMESSAGE%</p>
   <form class="form-horizontal" action="/update" method="post">
   <fieldset>
-
-  <!-- Form Name -->
   <legend>Configuration</legend>       
     <div class="">
         <label for="wifiSSID" class="formbuilder-text-label">Wifi SSID<span class="formbuilder-required">*</span></label>
@@ -64,17 +83,16 @@ text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
         <input type="text" class="form-control" name="newCalibration" id="newCalibration" required="required" value="%CALIBRATION%">
     </div>
 
+    </fieldset>
+
     <div class="">
         <button type="submit" class="form-control" name="submitButton" value="save" style="" id="submitButton">Save Changes</button>        
     </div>
 
-  </fieldset>
   </form>
 
   <form class="form-horizontal" action="/restart" method="post">
-  <fieldset>
   <button type="submit" class="form-control" name="restartButton" value="restart" style="" id="restartButton">Restart</button>
-  </fieldset>
   </form>
 
 </body>
@@ -87,14 +105,37 @@ const char update_html[] PROGMEM = R"rawhtml(
 <!DOCTYPE html>
 <html>
 <head><meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="data:,">
-
+<title>Power Monitor Configuration</title>
 <style>
-html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}
-text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
+:root{
+	--primarycolor:#1fa3ec;
+}
+body {
+    text-align: center;
+    font-family: Helvetica;
+}
+div,
+input,select {
+    padding: 5px;
+    font-size: 1em;
+    margin: 5px 0;
 
+}
+div{
+	margin: 5px 0;
+}
+input,button,select,.msg{
+	border-radius:.3rem;
+
+}
+button,input[type="button"],input[type="submit"] {
+    border: 0;
+    background-color: var(--primarycolor);
+    color: #fff;
+    line-height: 2.4rem;
+    font-size: 1.2rem;
+}
 </style>
-<link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
 </head>
 
 
@@ -104,9 +145,7 @@ text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
   <p>%OUTPUTMESSAGE%</p>
 
   <form class="form-horizontal" action="/restart" method="post">
-  <fieldset>
   <button type="submit" class="form-control" name="restartButton" value="restart" style="" id="restartButton">Restart</button>
-  </fieldset>
   </form>
 
 </body>
@@ -118,7 +157,37 @@ const char restart_html[] PROGMEM = R"rawhtml(
 <!DOCTYPE html>
 <html>
 <head><meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="data:,">
+<title>Power Monitor Configuration</title>
+<style>
+:root{
+	--primarycolor:#1fa3ec;
+}
+body {
+    text-align: center;
+    font-family: Helvetica;
+}
+div,
+input,select {
+    padding: 5px;
+    font-size: 1em;
+    margin: 5px 0;
+
+}
+div{
+	margin: 5px 0;
+}
+input,button,select,.msg{
+	border-radius:.3rem;
+
+}
+button,input[type="button"],input[type="submit"] {
+    border: 0;
+    background-color: var(--primarycolor);
+    color: #fff;
+    line-height: 2.4rem;
+    font-size: 1.2rem;
+}
+</style>
 
 <script>
   function sendResetRequest() 
@@ -141,13 +210,6 @@ const char restart_html[] PROGMEM = R"rawhtml(
       document.location.href = window.location.origin;
   }
 </script>
-
-<style>
-html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}
-text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
-
-</style>
-<link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
 </head>
 
 
@@ -156,17 +218,15 @@ text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
 <h1>Power Monitor Configuration</h1>  
 <div id = "result">ARE YOU SURE?<br>
   <form class="form-horizontal" action="" method="post">
-  <fieldset>
 
   <div class="">
   <button type="button" class="form-control" name="restartButton" style="" id="restartButton" onclick="sendResetRequest();">Yes - Restart Device</button>
   </div>
 
   <div class="">
-  <button type="button" class="form-control" name="backButton" style="" id="backButton" onclick="window.history.back();">No - Go Back</button>
+  <button type="button" class="form-control" name="backButton" style="" id="backButton" onclick="myURL();">No - Go Back</button>
   </div>
 
-  </fieldset>
   </form>
 </div>
   </body>

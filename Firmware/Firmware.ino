@@ -263,6 +263,7 @@ void setup() {
   // Webserver: Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html, processor);
+    outputMessage = "";
   });
 
   // Webserver Route for handling incoming new settings <ESP_IP>/update?wifiSSID=<inputMessage1>&wifiPassword=<inputMessage2>&mqttURL=<inputMessage3>&mqttPort=<inputMessage4>&...etc
@@ -280,14 +281,15 @@ void setup() {
 
       savePreferences();
 
-      outputMessage = String("Output: ") + " " + wifiSSID + " " + wifiPassword + " " + mqttURL + " " + mqttPort + " " + mqttUsername + " " + mqttPassword + " " + mqttTopic + " " + calibration + " " + String("OK. Please restart device.");
-      
+      //outputMessage = String("Output: ") + " " + wifiSSID + " " + wifiPassword + " " + mqttURL + " " + mqttPort + " " + mqttUsername + " " + mqttPassword + " " + mqttTopic + " " + calibration + " " + String("OK. Please restart device.");
+      outputMessage = String("<p>Configuration saved</p><p>New configuration will only take effect on a device restart.</p>");
     }
     else 
     {
       outputMessage = "Please complete all fields.";
     }    
     request->send_P(200, "text/html", update_html, processor);
+    outputMessage = "";
   });
 
   // Webserber: Handle when restart button pressed on index_html
@@ -301,6 +303,7 @@ void setup() {
     else // Just Show the confirmation page
     {
       request->send(200, "text/html", restart_html);
+      outputMessage = "";
     }
   });
 
