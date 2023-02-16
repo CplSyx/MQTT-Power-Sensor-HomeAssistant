@@ -15,7 +15,7 @@
 
 #include <ESP8266WiFi.h>              // needed for EPS8266
 #define ActivityLED 2                 // define the pinout for the activity LED
-#define MODE 0                        // operating mode for the code base - "1" outputs to Serial Monitor. "0" runs silently.
+#define MODE 1                        // operating mode for the code base - "1" outputs to Serial Monitor. "0" runs silently.
 
 /*  
     Localised print function that requires the MODE flag to be set to 1 in order to print. 
@@ -84,7 +84,7 @@ void println(String s)
 */
 #include "EmonLib_CurrentOnly.h"      // Include Emon Library
 EnergyMonitor emon1;                  // Create an instance
-double Value = 0;                     // Holds the latest Irms value
+double value = 0;                     // Holds the latest Irms value
 
 
 /* 
@@ -94,7 +94,7 @@ double Value = 0;                     // Holds the latest Irms value
 String generateMQTTPayload()  {
   
   String payload = String("");
-  payload = payload + "{\"Value\":" + "\"" + String(Value) + "\"" + ", ";
+  payload = payload + "{\"Value\":" + "\"" + String(value) + "\"" + ", ";
   payload = payload + "\"MAC Address\":" + "\"" + WiFi.macAddress() + "\"" + ", " + "\"SSID\":" + "\"" + WiFi.SSID() + "\"" + ", " + "\"IP\":" + "\"" + WiFi.localIP().toString() + "\"" + ", " + "\"count\":" + "\"" + String(messageCount)+"\"}";
   //NOTE: The above first creates an empty string via the String() operator as we can add strings to Strings, but not strings to strings. (Note capitalisation). 
   //https://arduino.stackexchange.com/questions/25125/why-do-i-get-invalid-operands-of-types-const-char-error
@@ -309,9 +309,9 @@ void setup() {
 
   /* Connect to the MQTT broker */
   IPAddress mqttAddress;
-  mqttAddress.fromString(mqttURL);
-  pubsubClient.setServer(mqttAddress, mqttPort);
-  pubsubClient.setCallback(callback);
+  mqttAddress.fromString(mqttURL);                  // Generate "IPAddress" object from user-provided IP address
+  pubsubClient.setServer(mqttAddress, mqttPort);    // Set server details for connection
+  //pubsubClient.setCallback(callback);             // Can be uncommented to handle incoming messages, but as this is a "one way" sensor it's not needed.
 
   /* Set the calibration value of the sensor */
   emon1.current(calibration); 
@@ -341,20 +341,20 @@ void loop() {
   } // end if
   pubsubClient.loop();
 
-/* Doing this blocks the loop and so causes issues with the webserver. CAN WE DO THIS AGAIN IF THE CALC IS INSIDE THE TIMER?
-  // read A/D values and store in value, averaged over 10 readings
-  Value = 0;
-  for (int j = 0; j<10; j++)
-  {
-    Value = Value + emon1.calcIrms(1480);
-  } 
-  Value = Value / 10;
-*/
-
   // Once interval has passed - this means we aren't constantly reading from the ADC which causes issues with WiFi connection
   if (millis() - lastMessageSent > updateInterval) {
     digitalWrite(ActivityLED, HIGH);
-    emon1.calcIrms(1480); //The sketch reads approximately 106 samples of current in each cycle of mains at 50 Hz. 1480 samples therefore works out at 14 cycles of mains.
+
+    // read A/D values and store in value, averaged over 5 readings
+    value = 0;
+    for (int j = 0; j<5; j++)
+    {
+      value = value + emon1.calcIrms(1480);
+      yield();  // Allow the ESP to do it's "background stuff". Important as this involves resetting the software WDT timeout!
+    } 
+    value = value / 5;
+    
+    //value = emon1.calcIrms(1480); //The sketch reads approximately 106 samples of current in each cycle of mains at 50 Hz. 1480 samples therefore works out at 14 cycles of mains.
 
     // get a report make and make as an array
     String payload = generateMQTTPayload();
@@ -365,7 +365,7 @@ void loop() {
     pubsubClient.publish(mqttTopic.c_str(), payloadArray);
 
     //Output to Serial Monitor what we have sent
-    print(": Published To topic: "); print(mqttTopic); print(" - Payload Sent: "); println(payloadArray);
+    print("Published To topic: "); print(mqttTopic); print(" - Payload Sent: "); println(payloadArray);
 
     digitalWrite(ActivityLED, LOW);
 
