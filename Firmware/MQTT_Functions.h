@@ -6,22 +6,19 @@ String Broadcast_All = "*ALL";
 // test if message received
 void callback(char* topic, byte* payload, unsigned int length_1) {
 
-#ifdef Print_Report_Level_1
-  Serial.print("Message length = "); Serial.println(length_1);
-#endif
-
   // make a string of the received message
   String  Message_Arrived = "";
   for (unsigned int i = 0; i < length_1; i++) {
     Message_Arrived = Message_Arrived + ((char)payload[i]);
   }
 
-#ifdef Print_Report_Level_1
-  Serial.print("Message arrived and made into string: "); Serial.println(Message_Arrived);
-#endif
-
   // is the message for only you? Either contains your MAC address or the for all address (broadcast)
   if (Message_Arrived.indexOf(WiFi.macAddress()) >= 0 || Message_Arrived.indexOf(Broadcast_All) >= 0) {
+
+    print("Message length = "); 
+    println(String(length_1));
+    print("Message arrived and made into string: "); 
+    println(Message_Arrived);
 
     // valid message received, remove the headers either All or Mac
     // remove *ALL if present
@@ -43,7 +40,7 @@ void callback(char* topic, byte* payload, unsigned int length_1) {
     // test for Reboot command
     if ((Message_Arrived.indexOf("#REBOOT") >= 0) ) {
 
-      Serial.println("Reboot Request!");
+      println("Reboot Request!");
       ESP.restart();
 
     } // end of reboot test function
@@ -63,26 +60,28 @@ void reconnect() {
   while (!pubsubClient.connected()) {
 
     // attempt to connect
-    Serial.print("Attempting MQTT Broker connection...");
+    print("Attempting MQTT Broker connection...");
 
     // connect client and use MAC address array as the Client ID
     if (pubsubClient.connect(WiFi.macAddress().c_str(), mqttUsername.c_str(), mqttPassword.c_str())) {
 
-      Serial.println("connected");
-      Serial.print("This is the client ID Used: "); Serial.println(WiFi.macAddress());
+      println("connected");
+      print("This is the client ID Used: "); 
+      println(WiFi.macAddress());
 
       // ... and resubscribe
       pubsubClient.subscribe(mqttTopic.c_str());
       delay(10);  // It needs a delay here else does not subsribe correctly!
-      Serial.print("Sunbscribed to: "); Serial.println(mqttTopic.c_str());
+      print("Sunbscribed to: "); 
+      println(mqttTopic.c_str());
 
     } // end of if connected
 
     else {
 
-      Serial.print("Failed, rc=");
-      Serial.print(pubsubClient.state());
-      Serial.println(" Try again in 5 seconds");
+      print("Failed, rc=");
+      print(String(pubsubClient.state()));
+      println(" Try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
 
