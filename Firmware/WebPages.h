@@ -82,6 +82,38 @@ text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
 
 )rawhtml";
 
+const char update_html[] PROGMEM = R"rawhtml(
+
+<!DOCTYPE html>
+<html>
+<head><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+
+<style>
+html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}
+text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
+
+</style>
+<link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+</head>
+
+
+
+<body>
+  <h1>Power Monitor Configuration</h1>        
+  <p>%OUTPUTMESSAGE%</p>
+
+  <form class="form-horizontal" action="/restart" method="post">
+  <fieldset>
+  <button type="submit" class="form-control" name="restartButton" value="restart" style="" id="restartButton">Restart</button>
+  </fieldset>
+  </form>
+
+</body>
+</html>
+
+)rawhtml";
+
 const char restart_html[] PROGMEM = R"rawhtml(
 <!DOCTYPE html>
 <html>

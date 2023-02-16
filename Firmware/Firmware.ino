@@ -74,7 +74,7 @@ void println(String s)
 */
 #include "PubSubClient.h"             // http://pubsubclient.knolleary.net/api.html
   PubSubClient pubsubClient(espClient); // ESP pubsub client
-  int messageCount = 0;
+  long messageCount = 0;
   long lastMessageSent = 0;           // Time last message was sent
   static int updateInterval = 1000;   // Interval between sending updates in milliseconds
 #include "MQTT_Functions.h"           // MQTT Functions (requires PubSubClient so must be included after)
@@ -287,7 +287,7 @@ void setup() {
     {
       outputMessage = "Please complete all fields.";
     }    
-    request->send_P(200, "text/html", index_html, processor);
+    request->send_P(200, "text/html", update_html, processor);
   });
 
   // Webserber: Handle when restart button pressed on index_html
