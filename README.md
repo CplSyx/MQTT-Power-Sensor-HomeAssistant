@@ -18,7 +18,7 @@ Included in this repository are the PCB files with schematic, a simple 3D printa
 ## Setup / Installation
 Configuration of the Arduino IDE for ESP8266 is not covered here.
 Code compilation will require libraries:
-- ESPAsyncTCP-master by me-no-dev (via GitHub [here](https://github.com/me-no-dev/ESPAsyncTCP))
+- ESPAsyncTCP by me-no-dev (via GitHub [here](https://github.com/me-no-dev/ESPAsyncTCP))
 - ESPAsyncWebServer by me-no-dev (via GitHub [here](https://github.com/me-no-dev/ESPAsyncWebServer))
 - Preferences by Volodymyr Shymanskyy (via IDE library manager)
 - WiFiManager by tzapu (via IDE library manager)
@@ -26,7 +26,7 @@ Code compilation will require libraries:
 1. Flash Firmware.ino to your Wemos D1 Mini
 2. Connect the hardware by attaching the breakout board
 3. Plug in the CT.
-4. Attach the CT to the wire to be measured. To avoid negative values, the power flow is from "front to back" if the printed text is on the front (check your CT as this is specific for the YHDC version).
+4. Attach the CT to the wire to be measured. To avoid negative values, the power flow is from "back to front" if the printed text is on the front (check your CT as this is specific for the YHDC version). See Safety Note below.
 5. Power on the board.
 6. Connect to the WiFi network "PowerMonitor_xxxxxx" and configure WiFi.
 7. Locate and go to the IP address of the board, and configure the remaining settings.
@@ -47,9 +47,9 @@ This can be tested against a known *resistive* source, such as an electrical hea
 
 ###### Safety Note
 
-When connecting and disconnecting the CT to the circuit to be measured, ensure that it is connected to the board (and thus the burden resistor).
+When connecting and disconnecting the CT to the circuit to be measured, ensure that it is connected to the board (and therefore the burden resistor).
 
-Disconnection from a live circuit without the burden resistor will induce a high voltage on the secondary side - where the exposed connector is!
+Disconnection from a live circuit without the burden resistor will induce a high voltage on the secondary side - where the exposed connector is! Keep the CT connected to the burden resistor when attaching/detaching to avoid accidental damage or a shock.
 
 ## HomeAssistant setup
 TBC
