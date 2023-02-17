@@ -32,6 +32,12 @@ Code compilation will require libraries:
 7. Locate and go to the IP address of the board, and configure the remaining settings.
 8. Restart!
 
+### Safety Note :warning:
+
+When connecting and disconnecting the CT to the circuit to be measured, ensure that it is also connected to the breakout board (and therefore the burden resistor).
+
+Disconnection from a live circuit without the burden resistor will induce a high voltage on the secondary side - where the exposed connector is! Keep the CT connected to the burden resistor when attaching/detaching to avoid accidental damage or a shock.
+
 ### Calibration Value
 The calibration value is obtained as
 ```
@@ -44,12 +50,6 @@ For the YHDC SCT-013-000, the CT Ratio printed on the front is 100A : 50mA, and 
 Therefore we can expect to use 90.9 our value.
 
 This can be tested against a known *resistive* source, such as an electrical heater, and adjusted as required.
-
-###### Safety Note
-
-When connecting and disconnecting the CT to the circuit to be measured, ensure that it is connected to the board (and therefore the burden resistor).
-
-Disconnection from a live circuit without the burden resistor will induce a high voltage on the secondary side - where the exposed connector is! Keep the CT connected to the burden resistor when attaching/detaching to avoid accidental damage or a shock.
 
 ## HomeAssistant setup
 TBC
