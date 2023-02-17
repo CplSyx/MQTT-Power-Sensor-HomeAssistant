@@ -213,7 +213,7 @@ void loadPreferences()
   mqttUsername = preferences.getString("mqttUsername", "username");
   mqttPassword = preferences.getString("mqttPassword", "none");
   mqttTopic = preferences.getString("mqttTopic", "publishtopic");
-  calibration = preferences.getDouble("calibration", 87.5);
+  calibration = preferences.getDouble("calibration", 90.9); // See Readme for how to calculate this value
 }
 
 /* 
@@ -240,7 +240,6 @@ void savePreferences()
     Setup routes for webserver page handling
     Set calibration for ADC read
 */
-
 void setup() {
   Serial.begin(115200);
 
